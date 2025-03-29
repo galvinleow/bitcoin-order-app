@@ -13,27 +13,25 @@ jobs:
         node-version: [16.x]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install Dependencies
-        run: npm ci --force
-
-      - name: Download OWASP Dependency Check
+        if: steps.cache-nodemodules.outputs.cache-hit != 'true'
         run: |
-          wget https://github.com/jeremylong/DependencyCheck/releases/download/v7.2.0/dependency-check-7.2.0-release.zip
-          unzip dependency-check-7.2.0-release.zip
+          npm ci --force
+
+      - name: OWASP Dependency Check
+        run: |
+          wget https://github.com/jeremylong/DependencyCheck/releases/download/v12.1.0/dependency-check-12.1.0-release.zip
+          unzip dependency-check-12.1.0-release.zip
 
       - name: Run scan with ODC
         run: |
-          dependency-check/bin/dependency-check.sh \
-            --project "bitcoin" \
-            --scan . \
-            --format HTML \
-            --out ./ODC-report \
-            --failOnCVSS 11 || true
+          dependency-check/bin/dependency-check.sh --project "bitcoin" --scan . > ODC-report
 
-      - name: Archive ODC report
+      - name: Archive production artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: sast-report
-          path: ./ODC-report
+          name: sast report
+          path: |
+            ./ODC-report
